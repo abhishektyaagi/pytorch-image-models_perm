@@ -1,4 +1,5 @@
-python trainMask.py /p/dataset/imagenet-raw-data \
+torchrun --standalone --nproc_per_node=4 trainMask.py \
+    /p/dataset/imagenet-raw-data \
     --model mixer_square_s16_224 \
     --batch-size 128 \
     --epochs 5 \
