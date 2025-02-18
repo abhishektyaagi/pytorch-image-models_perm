@@ -8,7 +8,7 @@ from copy import deepcopy
 import torch
 from torchvision.ops.misc import FrozenBatchNorm2d
 
-from timm.layers import BatchNormAct2d, SyncBatchNormAct, FrozenBatchNormAct2d,\
+from timm.layers.norm_act import BatchNormAct2d, SyncBatchNormAct, FrozenBatchNormAct2d,\
     freeze_batch_norm_2d, unfreeze_batch_norm_2d
 from .model_ema import ModelEma
 

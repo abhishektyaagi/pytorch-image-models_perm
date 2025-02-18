@@ -5,10 +5,12 @@ Hacked together by / Copyright 2020 Ross Wightman
 from functools import partial
 
 from torch import nn as nn
-
+import torch.nn.functional as F
 from .grn import GlobalResponseNorm
 from .helpers import to_2tuple
-
+from timm.utils import permDiag
+import torch
+from timm.utils.permDiag import get_mask_diagonal_torch, permDiag
 
 class Mlp(nn.Module):
     """ MLP as used in Vision Transformer, MLP-Mixer and related networks
@@ -49,6 +51,56 @@ class Mlp(nn.Module):
         x = self.drop2(x)
         return x
 
+class MaskedLinear(nn.Module):
+    """
+    A linear layer that multiplies its weight by a (fixed) binary mask each forward pass.
+    """
+    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, device='cuda'):
+        super().__init__()
+        self.linear = nn.Linear(in_features, out_features, bias=bias)
+
+        # Build your diagonal mask
+        diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+        diag_mask = permDiag(diag_mask, device=device)
+        
+        # Register the final mask as a buffer so that it does not update with gradients
+        self.register_buffer('mask', diag_mask)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Apply the mask to the weight on-the-fly
+        w = self.linear.weight * self.mask
+        return F.linear(x, w, self.linear.bias)
+
+class MaskedMLP(nn.Module):
+    """
+    Two-layer MLP with MaskedLinear. 
+    """
+    def __init__(
+        self, 
+        in_features, 
+        hidden_features=None, 
+        out_features=None, 
+        act_layer=nn.GELU, 
+        drop=0., 
+        sparsity=0.8, 
+        device='cuda'
+    ):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+
+        self.fc1 = MaskedLinear(in_features, hidden_features, bias=True, sparsity=sparsity, device=device)
+        self.act = act_layer()
+        self.fc2 = MaskedLinear(hidden_features, out_features, bias=True, sparsity=sparsity, device=device)
+        self.drop = nn.Dropout(drop)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
 
 class GluMlp(nn.Module):
     """ MLP w/ GLU style gating

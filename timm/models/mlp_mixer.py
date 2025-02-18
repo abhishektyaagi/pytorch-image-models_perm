@@ -46,7 +46,7 @@ import torch
 import torch.nn as nn
 
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from timm.layers import PatchEmbed, Mlp, GluMlp, GatedMlp, DropPath, lecun_normal_, to_2tuple
+from timm.layers import PatchEmbed, Mlp, GluMlp, GatedMlp, DropPath, lecun_normal_, to_2tuple, MaskedMLP
 from ._builder import build_model_with_cfg
 from ._features import feature_take_indices
 from ._manipulate import named_apply, checkpoint_seq
@@ -63,8 +63,9 @@ class MixerBlock(nn.Module):
             self,
             dim,
             seq_len,
-            mlp_ratio=(0.5, 4.0),
-            mlp_layer=Mlp,
+            #mlp_ratio=(0.5, 4.0),
+            mlp_ratio=(1,1),
+            mlp_layer=MaskedMLP,
             norm_layer=partial(nn.LayerNorm, eps=1e-6),
             act_layer=nn.GELU,
             drop=0.,
@@ -188,9 +189,10 @@ class MlpMixer(nn.Module):
             patch_size=16,
             num_blocks=8,
             embed_dim=512,
-            mlp_ratio=(0.5, 4.0),
+            mlp_ratio=(1, 1.0),
+            #mlp_ratio=(0.5, 4.0),
             block_layer=MixerBlock,
-            mlp_layer=Mlp,
+            mlp_layer=MaskedMLP,
             norm_layer=partial(nn.LayerNorm, eps=1e-6),
             act_layer=nn.GELU,
             drop_rate=0.,
@@ -547,6 +549,14 @@ def mixer_s16_224(pretrained=False, **kwargs) -> MlpMixer:
     model = _create_mixer('mixer_s16_224', pretrained=pretrained, **model_args)
     return model
 
+@register_model
+def mixer_square_s16_224(pretrained=False, **kwargs) -> MlpMixer:
+    """ Mixer-S/16 224x224
+    Paper:  'MLP-Mixer: An all-MLP Architecture for Vision' - https://arxiv.org/abs/2105.01601
+    """
+    model_args = dict(patch_size=16, num_blocks=8, embed_dim=512, **kwargs)
+    model = _create_mixer('mixer_s16_224', pretrained=pretrained, **model_args)
+    return model
 
 @register_model
 def mixer_b32_224(pretrained=False, **kwargs) -> MlpMixer:
