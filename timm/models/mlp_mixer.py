@@ -545,7 +545,7 @@ def mixer_s16_224(pretrained=False, **kwargs) -> MlpMixer:
     """ Mixer-S/16 224x224
     Paper:  'MLP-Mixer: An all-MLP Architecture for Vision' - https://arxiv.org/abs/2105.01601
     """
-    model_args = dict(patch_size=16, num_blocks=8, embed_dim=512, **kwargs)
+    model_args = dict(patch_size=16, num_blocks=8, embed_dim=256, **kwargs)
     model = _create_mixer('mixer_s16_224', pretrained=pretrained, **model_args)
     return model
 
@@ -554,7 +554,7 @@ def mixer_square_s16_224(pretrained=False, **kwargs) -> MlpMixer:
     """ Mixer-S/16 224x224
     Paper:  'MLP-Mixer: An all-MLP Architecture for Vision' - https://arxiv.org/abs/2105.01601
     """
-    model_args = dict(patch_size=16, num_blocks=8, embed_dim=512, **kwargs)
+    model_args = dict(patch_size=16, num_blocks=8, embed_dim=256, **kwargs)
     model = _create_mixer('mixer_s16_224', pretrained=pretrained, **model_args)
     return model
 
