@@ -10,7 +10,7 @@ from .grn import GlobalResponseNorm
 from .helpers import to_2tuple
 from timm.utils import permDiag
 import torch
-from timm.utils.permDiag import get_mask_diagonal_torch, permDiag
+from timm.utils.permDiag import get_mask_diagonal_torch, permDiag, get_mask_unstructured_torch
 
 class Mlp(nn.Module):
     """ MLP as used in Vision Transformer, MLP-Mixer and related networks
@@ -60,7 +60,8 @@ class MaskedLinear(nn.Module):
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         # Build your diagonal mask
-        diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+        #diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+        diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
         diag_mask = permDiag(diag_mask, device=device)
         
         # Register the final mask as a buffer so that it does not update with gradients

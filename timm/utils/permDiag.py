@@ -63,6 +63,24 @@ def get_mask_diagonal_torch(mask_shape,sparsity, device='cuda'):
 
     return final_mask
 
+#Produce a mask with elements spread randomly in unstructured manner
+def get_mask_unstructured_torch(mask_shape, sparsity, device='cuda'):
+    """
+    Computes a mask for a matrix of shape `mask_shape` where a specified fraction
+    (1 - sparsity) of elements are nonzero. This is done by:
+    
+    1) Computing the number of nonzero elements as: elemCount = (1 - sparsity) * total_elems.
+    2) Randomly choosing elemCount number of elements to set as True.
+    """
+    num_rows, num_cols = mask_shape
+    elemCount = int((1 - sparsity) * num_rows * num_cols)
+    # Randomly choose elemCount number of elements to set as True.
+    mask = torch.zeros(mask_shape, dtype=torch.bool, device=device)
+    # Choose elemCount number of elements to set as True.
+    mask.ravel()[torch.randperm(num_rows * num_cols)[:elemCount]] = True
+
+    return mask
+
 def generate_random_permutation_matrix(size, device='cpu'):
     """
     Generates a random permutation matrix of shape (size, size).

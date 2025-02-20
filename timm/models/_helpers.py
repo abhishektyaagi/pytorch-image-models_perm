@@ -52,7 +52,7 @@ def load_state_dict(
             checkpoint = safetensors.torch.load_file(checkpoint_path, device=device)
         else:
             try:
-                checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=weights_only)
+                checkpoint = torch.load(checkpoint_path, map_location=device)#, weights_only=weights_only)
             except TypeError:
                 checkpoint = torch.load(checkpoint_path, map_location=device)
 
@@ -130,7 +130,7 @@ def resume_checkpoint(
 ):
     resume_epoch = None
     if os.path.isfile(checkpoint_path):
-        checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')#, weights_only=False)
         if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
             if log_info:
                 _logger.info('Restoring model state from checkpoint...')
