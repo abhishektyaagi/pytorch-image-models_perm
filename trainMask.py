@@ -485,6 +485,8 @@ def main():
             num_classes=-1,  # force head adaptation
         )
 
+    print("Sparsity Type: ",args.sparsityType)
+    print("Sparsity: ",args.sparsity)
     model = create_model(
         args.model,
         pretrained=args.pretrained,
@@ -497,6 +499,8 @@ def main():
         bn_momentum=args.bn_momentum,
         bn_eps=args.bn_eps,
         scriptable=args.torchscript,
+        sparsityType=args.sparsityType,
+        sparsity=args.sparsity,
         checkpoint_path=args.initial_checkpoint,
         **factory_kwargs,
         **args.model_kwargs,

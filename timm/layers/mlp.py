@@ -93,10 +93,12 @@ class MaskedMLP(nn.Module):
         act_layer=nn.GELU, 
         drop=0., 
         sparsity=0.8, 
+        bias=True,
         sparsityType='random',
         device='cuda'
     ):
         super().__init__()
+        print("Chosen sparsity type: ",sparsityType)
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
 

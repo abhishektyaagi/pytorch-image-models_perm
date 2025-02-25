@@ -33,7 +33,7 @@ from .inplace_abn import InplaceAbn
 from .layer_scale import LayerScale, LayerScale2d
 from .linear import Linear
 from .mixed_conv2d import MixedConv2d
-from .mlp import Mlp, GluMlp, GatedMlp, SwiGLU, SwiGLUPacked, ConvMlp, GlobalResponseNormMlp, MaskedMLP
+from .mlp import Mlp, GluMlp, GatedMlp, SwiGLU, SwiGLUPacked, ConvMlp, GlobalResponseNormMlp, MaskedMLP, MaskedLinear
 from .non_local_attn import NonLocalAttn, BatNonLocalAttn
 from .norm import GroupNorm, GroupNorm1, LayerNorm, LayerNorm2d, RmsNorm, RmsNorm2d, SimpleNorm, SimpleNorm2d
 from .norm_act import BatchNormAct2d, GroupNormAct, GroupNorm1Act, LayerNormAct, LayerNormAct2d,\

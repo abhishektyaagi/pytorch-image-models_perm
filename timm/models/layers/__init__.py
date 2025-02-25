@@ -27,7 +27,7 @@ from timm.layers.helpers import to_ntuple, to_2tuple, to_3tuple, to_4tuple, make
 from timm.layers.inplace_abn import InplaceAbn
 from timm.layers.linear import Linear
 from timm.layers.mixed_conv2d import MixedConv2d
-from timm.layers.mlp import Mlp, GluMlp, GatedMlp, ConvMlp
+from timm.layers.mlp import Mlp, GluMlp, GatedMlp, ConvMlp, MaskedMLP, MaskedLinear
 from timm.layers.non_local_attn import NonLocalAttn, BatNonLocalAttn
 from timm.layers.norm import GroupNorm, GroupNorm1, LayerNorm, LayerNorm2d
 from timm.layers.norm_act import BatchNormAct2d, GroupNormAct, convert_sync_batchnorm

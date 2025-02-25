@@ -46,13 +46,15 @@ def get_mask_diagonal_torch(mask_shape,sparsity, device='cuda'):
     # Calculate total nonzero elements desired.
     elemCount = int((1 - sparsity) * num_rows * num_cols)
     # Number of full diagonals we need to cover elemCount:
-    numDiag = elemCount // diagLen
+    print(elemCount)
+    numDiag = elemCount // diagLen + 1
+    print("NumDiag: ", numDiag)
 
     # Randomly choose starting positions from the available rows (or columns)
     if num_rows >= num_cols:
-        diagPositions = torch.randint(0, num_rows, (numDiag,), device=device)
+        diagPositions = torch.randperm(num_rows, device=device)[:numDiag]
     else:
-        diagPositions = torch.randint(0, num_cols, (numDiag,), device=device)
+        diagPositions = torch.randperm(num_cols, device=device)[:numDiag]
 
     # Initialize final mask as all False.
     final_mask = torch.zeros(mask_shape, dtype=torch.bool, device=device)
@@ -73,7 +75,14 @@ def get_mask_unstructured_torch(mask_shape, sparsity, device='cuda'):
     2) Randomly choosing elemCount number of elements to set as True.
     """
     num_rows, num_cols = mask_shape
+    diagLen = num_cols if num_rows >= num_cols else num_rows
+
+    # Calculate total nonzero elements desired.
     elemCount = int((1 - sparsity) * num_rows * num_cols)
+    numDiag = elemCount // diagLen + 1
+    elemCount = numDiag * diagLen
+    print(elemCount)
+    
     # Randomly choose elemCount number of elements to set as True.
     mask = torch.zeros(mask_shape, dtype=torch.bool, device=device)
     # Choose elemCount number of elements to set as True.
@@ -100,17 +109,6 @@ def apply_permutation_to_mask(mask, permutation_matrix):
     return torch.matmul(permutation_matrix.float(), mask.float()).bool()
 
 
-""" #Take the diagonal matrix, and apply permutation to it
-def permDiag(diagMask,device='cuda'):
-
-    #NOTE: This works for a square matrix
-    permutation = generate_random_permutation_matrix(diagMask.shape[0], device=device)
-
-    #Apply the permutation to the mask
-    mask = apply_permutation_to_mask(diagMask, permutation)
-
-    return mask
- """
 def permDiag(mask, device='cuda', permute_rows=True, permute_cols=True):
     """
     Permute a rectangular mask of shape (M, N) in the row dimension,

@@ -463,6 +463,8 @@ class VisionTransformer(nn.Module):
             proj_drop_rate: float = 0.,
             attn_drop_rate: float = 0.,
             drop_path_rate: float = 0.,
+            sparsity: float = 0.,
+            sparsityType: str = 'random',
             weight_init: Literal['skip', 'jax', 'jax_nlhb', 'moco', ''] = '',
             fix_init: bool = False,
             embed_layer: Callable = PatchEmbed,
@@ -522,6 +524,11 @@ class VisionTransformer(nn.Module):
         self.no_embed_class = no_embed_class  # don't embed prefix positions (includes reg)
         self.dynamic_img_size = dynamic_img_size
         self.grad_checkpointing = False
+        self.sparsityType = sparsityType
+        self.sparsity = sparsity
+
+        print("Sparsity Type: ",self.sparsityType)
+        print("Sparsity: ",self.sparsity)
 
         embed_args = {}
         if dynamic_img_size:
@@ -573,7 +580,7 @@ class VisionTransformer(nn.Module):
                 drop_path=dpr[i],
                 norm_layer=norm_layer,
                 act_layer=act_layer,
-                mlp_layer=mlp_layer,
+                mlp_layer=partial(mlp_layer,sparsityType=self.sparsityType, sparsity=self.sparsity),
             )
             for i in range(depth)])
         self.feature_info = [

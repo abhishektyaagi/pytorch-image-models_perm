@@ -45,6 +45,8 @@ def create_model(
         cache_dir: Optional[Union[str, Path]] = None,
         scriptable: Optional[bool] = None,
         exportable: Optional[bool] = None,
+        #sparsityType: Optional[str] = None,
+        #sparsity: Optional[float] = None,
         no_jit: Optional[bool] = None,
         **kwargs,
 ):
@@ -128,6 +130,8 @@ def create_model(
             pretrained_cfg=pretrained_cfg,
             pretrained_cfg_overlay=pretrained_cfg_overlay,
             cache_dir=cache_dir,
+            #sparsity=sparsity,
+            #sparsityType=sparsityType,
             **kwargs,
         )
 

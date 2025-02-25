@@ -246,6 +246,7 @@ def deit_tiny_patch16_224(pretrained=False, **kwargs) -> VisionTransformer:
     """ DeiT-tiny model @ 224x224 from paper (https://arxiv.org/abs/2012.12877).
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
+    print(f"kwargs: {kwargs}")
     model_args = dict(patch_size=16, embed_dim=192, depth=12, num_heads=3)
     model = _create_deit('deit_tiny_patch16_224', pretrained=pretrained, **dict(model_args, **kwargs))
     return model
