@@ -61,8 +61,9 @@ class MaskedLinear(nn.Module):
 
         # Build your diagonal mask
         #diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
-        diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
-        diag_mask = permDiag(diag_mask, device=device)
+        #diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
+        #diag_mask = permDiag(diag_mask, device=device)
+        diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
         
         # Register the final mask as a buffer so that it does not update with gradients
         self.register_buffer('mask', diag_mask)

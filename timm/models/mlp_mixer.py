@@ -105,7 +105,7 @@ class ResBlock(nn.Module):
             dim,
             seq_len,
             mlp_ratio=4,
-            mlp_layer=Mlp,
+            mlp_layer=MaskedMLP,
             norm_layer=Affine,
             act_layer=nn.GELU,
             init_values=1e-4,
