@@ -396,6 +396,10 @@ group.add_argument('--wandb-tags', default=[], type=str, nargs='+',
                    help='wandb tags')
 group.add_argument('--wandb-resume-id', default='', type=str, metavar='ID',
                    help='If resuming a run, the id of the run in wandb')
+group.add_argument('--sparsity', type=float, default=0.0, metavar='PCT',
+                   help='Sparsity (default: 0.0)')
+group.add_argument('--sparsityType', type=str, default='random',
+                   help='Sparsity type (default: random)')
 
 
 def _parse_args():

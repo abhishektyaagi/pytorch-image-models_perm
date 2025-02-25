@@ -55,15 +55,23 @@ class MaskedLinear(nn.Module):
     """
     A linear layer that multiplies its weight by a (fixed) binary mask each forward pass.
     """
-    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, device='cuda'):
+    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, sparsityType='random', device='cuda'):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         # Build your diagonal mask
         #diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
-        #diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
         #diag_mask = permDiag(diag_mask, device=device)
-        diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+        if sparsityType == 'random':
+            diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
+        elif sparsityType == 'diag':
+            diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+        elif sparsityType == 'permDiag':
+            diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+            diag_mask = permDiag(diag_mask, device=device)
+        #elif sparsityType == 'k:m':
+        else:
+            raise ValueError('Invalid sparsityType')
         
         # Register the final mask as a buffer so that it does not update with gradients
         self.register_buffer('mask', diag_mask)
@@ -85,6 +93,7 @@ class MaskedMLP(nn.Module):
         act_layer=nn.GELU, 
         drop=0., 
         sparsity=0.8, 
+        sparsityType='random',
         device='cuda'
     ):
         super().__init__()

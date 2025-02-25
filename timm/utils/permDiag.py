@@ -100,7 +100,7 @@ def apply_permutation_to_mask(mask, permutation_matrix):
     return torch.matmul(permutation_matrix.float(), mask.float()).bool()
 
 
-#Take the diagonal matrix, and apply permutation to it
+""" #Take the diagonal matrix, and apply permutation to it
 def permDiag(diagMask,device='cuda'):
 
     #NOTE: This works for a square matrix
@@ -110,5 +110,37 @@ def permDiag(diagMask,device='cuda'):
     mask = apply_permutation_to_mask(diagMask, permutation)
 
     return mask
+ """
+def permDiag(mask, device='cuda', permute_rows=True, permute_cols=True):
+    """
+    Permute a rectangular mask of shape (M, N) in the row dimension,
+    column dimension, or both.
+
+    Args:
+      mask: The original 2D mask (M x N).
+      device: 'cpu' or 'cuda'.
+      permute_rows: If True, permute the row dimension.
+      permute_cols: If True, permute the column dimension.
+
+    Returns:
+      A permuted mask of shape (M, N).
+    """
+    M, N = mask.shape
+
+    # Convert the mask to float for matmul, we'll cast back to bool later.
+    result = mask.float().to(device)
+
+    # --- 1) Permute rows (left-multiply) ---
+    if permute_rows:
+        P_rows = generate_random_permutation_matrix(M, device=device)  # (M x M)
+        result = P_rows.float().matmul(result)  # --> shape is (M, N)
+
+    # --- 2) Permute columns (right-multiply) ---
+    if permute_cols:
+        P_cols = generate_random_permutation_matrix(N, device=device)  # (N x N)
+        result = result.matmul(P_cols.float())  # --> shape is (M, N)
+
+    # Cast back to bool if your mask is boolean
+    return result.bool()
 
 #Produce a mask which abides by our sparsity pattern of permuted diagonals

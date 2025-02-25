@@ -305,3 +305,83 @@ def resample_patch_embed(
 #             x = x.flatten(2).transpose(1, 2)  # BCHW -> BNC
 #         x = self.norm(x)
 #         return x
+
+class PatchEmbedLinear(nn.Module):
+    """
+    A patch embedding module implemented via a single linear transform
+    over flattened patches, instead of a Conv2d.
+    """
+    def __init__(
+        self,
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        embed_dim=768,
+        norm_layer=None,
+        flatten=True,
+    ):
+        super().__init__()
+        
+        self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
+        self.patch_size = patch_size if isinstance(patch_size, tuple) else (patch_size, patch_size)
+        
+        self.grid_size = (
+            self.img_size[0] // self.patch_size[0],
+            self.img_size[1] // self.patch_size[1],
+        )
+        self.num_patches = self.grid_size[0] * self.grid_size[1]
+        
+        # Flatten each patch into a 1D vector of size patch_area * in_chans
+        patch_area = self.patch_size[0] * self.patch_size[1]
+        in_features = patch_area * in_chans
+
+        # Replace the Conv2d with a linear transform
+        # that maps flattened patches -> embed_dim.
+        self.proj = nn.Linear(in_features, embed_dim, bias=True)
+        
+        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
+        self.flatten = flatten  # if you want output as (B, num_patches, embed_dim)
+
+    def forward(self, x):
+        # x is (B, C, H, W)
+        B, C, H, W = x.shape
+        
+        # Optionally, check that H, W match self.img_size
+        # or handle any needed padding if you want "dynamic_img_pad"
+        
+        # 1) Unfold patches using torch.nn.functional.unfold or manual reshape
+        # Suppose we do a manual approach for clarity:
+        #   - Reshape  -> (B, C, grid_h, patch_h, grid_w, patch_w)
+        #   - Permute  -> (B, grid_h, grid_w, C, patch_h, patch_w)
+        #   - Flatten  -> (B, grid_h * grid_w, C * patch_h * patch_w)
+
+        patch_h, patch_w = self.patch_size
+        grid_h, grid_w = H // patch_h, W // patch_w
+        
+        # (B, C, grid_h, patch_h, grid_w, patch_w)
+        patches = x.view(
+            B, C, grid_h, patch_h, grid_w, patch_w
+        )
+
+        # (B, grid_h, grid_w, C, patch_h, patch_w)
+        patches = patches.permute(0, 2, 4, 1, 3, 5).contiguous()
+
+        # (B, grid_h * grid_w, C * patch_h * patch_w)
+        patches = patches.view(
+            B, grid_h * grid_w, -1
+        )
+
+        # 2) Apply the linear projection
+        # shape -> (B, grid_h*grid_w, embed_dim)
+        x = self.proj(patches)
+
+        # 3) Optionally apply normalization per-patch
+        x = self.norm(x)
+
+        if self.flatten:
+            # shape stays (B, num_patches, embed_dim)
+            return x
+        else:
+            # for example, shape (B, embed_dim, grid_h, grid_w)
+            # if you want to keep “spatial” layout:
+            return x.permute(0, 2, 1).reshape(B, -1, grid_h, grid_w)
