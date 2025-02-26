@@ -41,7 +41,7 @@ from torch.jit import Final
 
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD, \
     OPENAI_CLIP_MEAN, OPENAI_CLIP_STD
-from timm.layers import PatchEmbed, Mlp, MaskedMLP, MaskedLinear, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, SwiGLU, \
+from timm.layers import PatchEmbed, PatchEmbedLinear, Mlp, MaskedMLP, MaskedLinear, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, SwiGLU, \
     trunc_normal_, lecun_normal_, resample_patch_embed, resample_abs_pos_embed, use_fused_attn, \
     get_act_layer, get_norm_layer, LayerType
 from ._builder import build_model_with_cfg
@@ -536,7 +536,7 @@ class VisionTransformer(nn.Module):
             embed_args.update(dict(strict_img_size=False, output_fmt='NHWC'))
         if embed_norm_layer is not None:
             embed_args['norm_layer'] = embed_norm_layer
-        self.patch_embed = embed_layer(
+        """ self.patch_embed = embed_layer(
             img_size=img_size,
             patch_size=patch_size,
             in_chans=in_chans,
@@ -544,6 +544,17 @@ class VisionTransformer(nn.Module):
             bias=not pre_norm,  # disable bias if pre-norm is used (e.g. CLIP)
             dynamic_img_pad=dynamic_img_pad,
             **embed_args,
+        ) """
+        self.patch_embed = PatchEmbedLinear(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_chans=in_chans,
+            embed_dim=embed_dim,
+            bias=not pre_norm,       # e.g. same logic from the original code
+            dynamic_img_pad=dynamic_img_pad,
+            norm_layer=embed_norm_layer,
+            sparsity=self.sparsity,
+            sparsityType=self.sparsityType,
         )
         num_patches = self.patch_embed.num_patches
         reduction = self.patch_embed.feat_ratio() if hasattr(self.patch_embed, 'feat_ratio') else patch_size

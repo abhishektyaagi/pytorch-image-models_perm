@@ -19,6 +19,7 @@ import torch.nn.functional as F
 from .format import Format, nchw_to
 from .helpers import to_2tuple
 from .trace_utils import _assert
+from timm.layers.mlp import MaskedLinear, MaskedMLP
 
 _logger = logging.getLogger(__name__)
 
@@ -319,46 +320,75 @@ class PatchEmbedLinear(nn.Module):
         embed_dim=768,
         norm_layer=None,
         flatten=True,
+        bias=True,
+        dynamic_img_pad=False,
+        sparsityType='random',
+        sparsity=0.9,
     ):
+        """
+        Args:
+            img_size: Tuple[int, int] or int. The input image size (H, W).
+            patch_size: Tuple[int, int] or int. The patch (kernel) size (h, w).
+            in_chans: Number of input channels.
+            embed_dim: Dimension of the resulting embedded patch vectors.
+            norm_layer: Optional normalization layer applied after the linear projection.
+            flatten: Whether to flatten the output to (B, num_patches, embed_dim).
+            bias: Whether to include a bias in the linear projection.
+            dynamic_img_pad: If True, pad the input so H, W are multiples of patch_size.
+        """
         super().__init__()
-        
+        self.dynamic_img_pad = dynamic_img_pad
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.patch_size = patch_size if isinstance(patch_size, tuple) else (patch_size, patch_size)
-        
+        self.flatten = flatten
+
+        # Compute grid/patch info for the default (img_size) shape
         self.grid_size = (
             self.img_size[0] // self.patch_size[0],
             self.img_size[1] // self.patch_size[1],
         )
         self.num_patches = self.grid_size[0] * self.grid_size[1]
-        
-        # Flatten each patch into a 1D vector of size patch_area * in_chans
+
+        # Each patch becomes a flattened vector of dimension patch_area * in_chans
         patch_area = self.patch_size[0] * self.patch_size[1]
         in_features = patch_area * in_chans
 
-        # Replace the Conv2d with a linear transform
-        # that maps flattened patches -> embed_dim.
-        self.proj = nn.Linear(in_features, embed_dim, bias=True)
-        
+        # The linear projection from patch_in -> embed_dim
+        self.proj = nn.Linear(in_features, embed_dim, bias=bias)
+        #print("Sparsity type in projection layer: ", sparsityType)
+        #print("Sparsity in projection layer: ", sparsity)
+        #self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
+
+        # Optional per-patch normalization
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
-        self.flatten = flatten  # if you want output as (B, num_patches, embed_dim)
 
-    def forward(self, x):
-        # x is (B, C, H, W)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): shape (B, C, H, W)
+
+        Returns:
+            torch.Tensor:
+                (B, num_patches, embed_dim) if flatten=True,
+                else (B, embed_dim, grid_h, grid_w)
+        """
         B, C, H, W = x.shape
-        
-        # Optionally, check that H, W match self.img_size
-        # or handle any needed padding if you want "dynamic_img_pad"
-        
-        # 1) Unfold patches using torch.nn.functional.unfold or manual reshape
-        # Suppose we do a manual approach for clarity:
-        #   - Reshape  -> (B, C, grid_h, patch_h, grid_w, patch_w)
-        #   - Permute  -> (B, grid_h, grid_w, C, patch_h, patch_w)
-        #   - Flatten  -> (B, grid_h * grid_w, C * patch_h * patch_w)
 
-        patch_h, patch_w = self.patch_size
-        grid_h, grid_w = H // patch_h, W // patch_w
-        
+        # If dynamic_img_pad is set, pad to multiples of patch_size in each spatial dim
+        if self.dynamic_img_pad:
+            padh = (self.patch_size[0] - (H % self.patch_size[0])) % self.patch_size[0]
+            padw = (self.patch_size[1] - (W % self.patch_size[1])) % self.patch_size[1]
+            if padh or padw:
+                # F.pad input format is (left, right, top, bottom)
+                # But we need to pad width first, then height => (left=0, right=padw, top=0, bottom=padh).
+                x = F.pad(x, (0, padw, 0, padh))
+                H, W = H + padh, W + padw
+
+        # Recompute grid size in case we've padded dynamically
+        grid_h, grid_w = H // self.patch_size[0], W // self.patch_size[1]
+
         # (B, C, grid_h, patch_h, grid_w, patch_w)
+        patch_h, patch_w = self.patch_size
         patches = x.view(
             B, C, grid_h, patch_h, grid_w, patch_w
         )
@@ -366,22 +396,18 @@ class PatchEmbedLinear(nn.Module):
         # (B, grid_h, grid_w, C, patch_h, patch_w)
         patches = patches.permute(0, 2, 4, 1, 3, 5).contiguous()
 
-        # (B, grid_h * grid_w, C * patch_h * patch_w)
-        patches = patches.view(
-            B, grid_h * grid_w, -1
-        )
+        # (B, grid_h*grid_w, C*patch_h*patch_w)
+        patches = patches.view(B, grid_h * grid_w, -1)
 
-        # 2) Apply the linear projection
-        # shape -> (B, grid_h*grid_w, embed_dim)
-        x = self.proj(patches)
+        # Apply the linear projection: (B, grid_h * grid_w, embed_dim)
+        out = self.proj(patches)
 
-        # 3) Optionally apply normalization per-patch
-        x = self.norm(x)
+        # Optional normalization
+        out = self.norm(out)
 
+        # If flatten=True => (B, num_patches, embed_dim), else a BCHW-like shape
         if self.flatten:
-            # shape stays (B, num_patches, embed_dim)
-            return x
+            return out
         else:
-            # for example, shape (B, embed_dim, grid_h, grid_w)
-            # if you want to keep “spatial” layout:
-            return x.permute(0, 2, 1).reshape(B, -1, grid_h, grid_w)
+            # E.g. reshape to (B, embed_dim, grid_h, grid_w)
+            return out.permute(0, 2, 1).reshape(B, -1, grid_h, grid_w)
