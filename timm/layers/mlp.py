@@ -76,10 +76,19 @@ class MaskedLinear(nn.Module):
         # Register the final mask as a buffer so that it does not update with gradients
         self.register_buffer('mask', diag_mask)
 
+        # Permanently apply the mask on initialization
+        with torch.no_grad():
+            self.linear.weight.data.mul_(self.mask)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Apply the mask to the weight on-the-fly
         w = self.linear.weight * self.mask
         return F.linear(x, w, self.linear.bias)
+    
+    def apply_mask(self):
+        """Reapply the mask to ensure the zeroed weights remain zero."""
+        with torch.no_grad():
+            self.linear.weight.data.mul_(self.mask)
 
 class MaskedMLP(nn.Module):
     """
