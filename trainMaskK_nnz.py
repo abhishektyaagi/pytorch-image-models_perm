@@ -41,7 +41,6 @@ from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler_v2, scheduler_kwargs
 from timm.utils import ApexScaler, NativeScaler
 from timm.utils import permDiag
-from timm.layers import MaskedLinear
 
 try:
     from apex import amp
@@ -1104,14 +1103,6 @@ def train_one_epoch(
         optimizer.zero_grad()
         if model_ema is not None:
             model_ema.update(model, step=num_updates)
-
-        ############################################################################
-        # Re-apply MaskedLinear masks right after the optimizer's weight update
-        ############################################################################
-        for module in model.modules():
-            if isinstance(module, MaskedLinear):
-                module.apply_mask()
-        ############################################################################
 
         if args.synchronize_step:
             if device.type == 'cuda':

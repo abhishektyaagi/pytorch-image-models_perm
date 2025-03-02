@@ -23,6 +23,6 @@ def calcNNZ(state_dict):
     return total_nnz, total_params
 
 if __name__ == "__main__":
-    checkpoint = torch.load("/localdisk/Abhishek/pytorch-image-models_perm/output/train/deit-tiny-permDiagI100_patchLinear_0.95/model_best.pth.tar")
+    checkpoint = torch.load("/localdisk/Abhishek/pytorch-image-models_perm/output/train/deit-tiny-diagI100_patchLinear_maskInit_0.80/model_best.pth.tar")
     state_dict = checkpoint['state_dict']
     calcNNZ(state_dict)

@@ -141,4 +141,4 @@ def permDiag(mask, device='cuda', permute_rows=True, permute_cols=True):
     # Cast back to bool if your mask is boolean
     return result.bool()
 
-#Produce a mask which abides by our sparsity pattern of permuted diagonals
+#Produce a mask which abides by our sparsity pattern of permuted diagonalsz
