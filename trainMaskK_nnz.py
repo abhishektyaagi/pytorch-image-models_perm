@@ -1061,10 +1061,14 @@ def train_one_epoch(
             
              # A: Add row/column penalty
             sparsity_penalty_strength = 1e-4
-            for name, param in model.named_parameters():
-                if 'weight' in name and param.ndim == 2:
-                    K_for_this_layer = compute_k_for_param(param.shape,args.sparsity)
-                    # e.g. KNonzeroRowColPenalty or any custom penalty
+            for module_name, module in model.named_modules():
+                # Only apply if it's actually an nn.Linear
+                if isinstance(module, nn.Linear):
+                    param = module.weight  # shape [out_features, in_features]
+                    if param is None:
+                        continue
+                    
+                    K_for_this_layer = compute_k_for_param(param.shape, args.sparsity)
                     penalty_fn = KNonzeroRowColPenalty(
                         k=K_for_this_layer,
                         row_weight=sparsity_penalty_strength,
