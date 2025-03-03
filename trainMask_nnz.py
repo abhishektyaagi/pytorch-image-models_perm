@@ -1076,8 +1076,6 @@ def train_one_epoch(
                     )
                     loss += penalty_fn(param)
 
-    if accum_steps > 1:
-        loss /= accum_steps
             if accum_steps > 1:
                 loss /= accum_steps
             return loss
