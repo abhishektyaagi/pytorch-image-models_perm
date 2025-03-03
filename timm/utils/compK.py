@@ -5,7 +5,7 @@ import numpy as np
 def compute_k_for_param(mask_shape,sparsity):
     # shape is (out_features, in_features)
     # You might do something like:
-    M, N = shape
+    M, N = mask_shape
 
     num_rows, num_cols = mask_shape
     # Diagonal length is the smaller dimension:
