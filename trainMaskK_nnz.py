@@ -35,12 +35,12 @@ from torch.nn.parallel import DistributedDataParallel as NativeDDP
 from timm import utils
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
 from timm.layers import convert_splitbn_model, convert_sync_batchnorm, set_fast_norm
-from timm.loss import JsdCrossEntropy, SoftTargetCrossEntropy, BinaryCrossEntropy, LabelSmoothingCrossEntropy
+from timm.loss import JsdCrossEntropy, SoftTargetCrossEntropy, BinaryCrossEntropy, LabelSmoothingCrossEntropy, KNonzeroRowColPenalty
 from timm.models import create_model, safe_model_name, resume_checkpoint, load_checkpoint, model_parameters
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler_v2, scheduler_kwargs
 from timm.utils import ApexScaler, NativeScaler
-from timm.utils import permDiag
+from timm.utils import permDiag, compute_k_for_param
 
 try:
     from apex import amp
@@ -1058,6 +1058,22 @@ def train_one_epoch(
             with amp_autocast():
                 output = model(input)
                 loss = loss_fn(output, target)
+            
+             # A: Add row/column penalty
+            sparsity_penalty_strength = 1e-4
+            for name, param in model.named_parameters():
+                if 'weight' in name and param.ndim == 2:
+                    K_for_this_layer = compute_k_for_param(param.shape,args.sparsity)
+                    # e.g. KNonzeroRowColPenalty or any custom penalty
+                    penalty_fn = KNonzeroRowColPenalty(
+                        k=K_for_this_layer,
+                        row_weight=sparsity_penalty_strength,
+                        col_weight=sparsity_penalty_strength
+                    )
+                    loss += penalty_fn(param)
+
+    if accum_steps > 1:
+        loss /= accum_steps
             if accum_steps > 1:
                 loss /= accum_steps
             return loss
