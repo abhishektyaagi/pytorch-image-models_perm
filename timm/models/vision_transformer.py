@@ -68,6 +68,8 @@ class Attention(nn.Module):
             attn_drop: float = 0.,
             proj_drop: float = 0.,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
+            sparsityType: str = 'random',
+            sparsity: float = 0.8,
     ) -> None:
         super().__init__()
         assert dim % num_heads == 0, 'dim should be divisible by num_heads'
@@ -82,7 +84,7 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
 
         #self.proj = nn.Linear(dim, dim, bias=proj_bias)
-        self.proj = MaskedLinear(dim, dim, bias=proj_bias)
+        self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)
 
@@ -138,6 +140,8 @@ class Block(nn.Module):
             attn_drop: float = 0.,
             init_values: Optional[float] = None,
             drop_path: float = 0.,
+            sparsityType: str = 'random',
+            sparsity: float = 0.8,
             act_layer: Type[nn.Module] = nn.GELU,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
             mlp_layer: Type[nn.Module] = MaskedMLP,
@@ -153,6 +157,8 @@ class Block(nn.Module):
             attn_drop=attn_drop,
             proj_drop=proj_drop,
             norm_layer=norm_layer,
+            sparsityType=sparsityType,
+            sparsity=sparsity,
         )
         self.ls1 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
@@ -164,6 +170,8 @@ class Block(nn.Module):
             act_layer=act_layer,
             bias=proj_bias,
             drop=proj_drop,
+            sparsityType=sparsityType,
+            sparsity=sparsity,
         )
         self.ls2 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path2 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
@@ -591,7 +599,10 @@ class VisionTransformer(nn.Module):
                 drop_path=dpr[i],
                 norm_layer=norm_layer,
                 act_layer=act_layer,
+                sparsity=sparsity,
+                sparsityType=sparsityType,
                 mlp_layer=partial(mlp_layer,sparsityType=self.sparsityType, sparsity=self.sparsity),
+                #mlp_layer=mlp_layer,
             )
             for i in range(depth)])
         self.feature_info = [

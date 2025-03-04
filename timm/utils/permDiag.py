@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import random
 import math
+import time
 
 #Generate permuted diagonals given an input matrix, sparsity 
 def get_mask_one_diagonal_torch(mask_shape, diag_pos, experimentType="random", device='cuda'):
@@ -102,6 +103,36 @@ def generate_random_permutation_matrix(size, device='cpu'):
 
     return permutation
 
+def generate_random_permutation_matrix_time_seed(size, device='cuda'):
+    """
+    Generates a random permutation matrix of shape (size, size).
+    Uses the current time to seed a local RNG so that each call is unique,
+    even if the global seed is fixed elsewhere.
+    """
+    # Create a local generator so we don't affect the global RNG
+    gen = torch.Generator(device=device)
+
+    # Use microseconds or nanoseconds for uniqueness
+    # (int(time.time() * 1e6), for example)
+    seed_val = int(time.time() * 1e6)
+    gen.manual_seed(seed_val)
+
+    identity = torch.eye(size, device=device)
+    
+    # Pass the local generator to randperm
+    #permutation = identity[torch.randperm(size, generator=gen)]
+
+    # IMPORTANT: specify the same device for randperm
+    perm_indices = torch.randperm(size, generator=gen, device=device)
+    permutation = identity[perm_indices]
+
+    # Optionally save to a unique file
+    #filename = f'permutation_{seed_val}.pt'
+    #torch.save(permutation, filename)
+    #print(f"Saved permutation to {filename} with seed {seed_val}")
+
+    return permutation
+
 def apply_permutation_to_mask(mask, permutation_matrix):
     """
     Applies a permutation matrix to a mask by matrix multiplication.
@@ -130,12 +161,12 @@ def permDiag(mask, device='cuda', permute_rows=True, permute_cols=True):
 
     # --- 1) Permute rows (left-multiply) ---
     if permute_rows:
-        P_rows = generate_random_permutation_matrix(M, device=device)  # (M x M)
+        P_rows = generate_random_permutation_matrix_time_seed(M, device=device)  # (M x M)
         result = P_rows.float().matmul(result)  # --> shape is (M, N)
 
     # --- 2) Permute columns (right-multiply) ---
     if permute_cols:
-        P_cols = generate_random_permutation_matrix(N, device=device)  # (N x N)
+        P_cols = generate_random_permutation_matrix_time_seed(N, device=device)  # (N x N)
         result = result.matmul(P_cols.float())  # --> shape is (M, N)
 
     # Cast back to bool if your mask is boolean

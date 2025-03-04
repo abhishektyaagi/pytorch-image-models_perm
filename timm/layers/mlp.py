@@ -72,7 +72,9 @@ class MaskedLinear(nn.Module):
         #elif sparsityType == 'k:m':
         else:
             raise ValueError('Invalid sparsityType')
-        
+       
+        diag_mask = diag_mask.to(self.linear.weight.device)
+
         # Register the final mask as a buffer so that it does not update with gradients
         self.register_buffer('mask', diag_mask)
 
