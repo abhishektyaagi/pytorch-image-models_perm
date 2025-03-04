@@ -325,6 +325,25 @@ def deit_base_distilled_patch16_384(pretrained=False, **kwargs) -> VisionTransfo
         'deit_base_distilled_patch16_384', pretrained=pretrained, distilled=True, **dict(model_args, **kwargs))
     return model
 
+##############################################################################################################
+@register_model
+def deit3_tiny_patch16_224(pretrained=False, **kwargs) -> VisionTransformer:
+    """DeiT-3 tiny model @ 224x224 with hyperparameters similar to DeiT‑tiny.
+    
+    Note: Since there are no official pretrained weights for a DeiT‑3 tiny variant,
+    pretrained must be False unless you train your own checkpoint.
+    """
+    model_args = dict(
+        patch_size=16,
+        embed_dim=192,   # same as deit-tiny
+        depth=12,        # same as deit-tiny
+        num_heads=3,     # same as deit-tiny
+        no_embed_class=True,  # typically used in deit3 variants
+        init_values=1e-6  # initialization value as used in other deit3 models
+    )
+    model = _create_deit('deit3_tiny_patch16_224', pretrained=pretrained, **dict(model_args, **kwargs))
+    return model
+##############################################################################################################
 
 @register_model
 def deit3_small_patch16_224(pretrained=False, **kwargs) -> VisionTransformer:
