@@ -41,7 +41,7 @@ from torch.jit import Final
 
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD, \
     OPENAI_CLIP_MEAN, OPENAI_CLIP_STD
-from timm.layers import PatchEmbed, PatchEmbedLinear, Mlp, MaskedMLP, MaskedLinear, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, SwiGLU, \
+from timm.layers import PatchEmbed, PatchEmbedLinear, Mlp, MaskedMLP, MaskedLinear, AutoShuffleLinear, AutoShuffleMLP, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, SwiGLU, \
     trunc_normal_, lecun_normal_, resample_patch_embed, resample_abs_pos_embed, use_fused_attn, \
     get_act_layer, get_norm_layer, LayerType
 from ._builder import build_model_with_cfg
@@ -84,7 +84,8 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
 
         #self.proj = nn.Linear(dim, dim, bias=proj_bias)
-        self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
+        #self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
+        self.proj = AutoShuffleMLP(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)
 
@@ -144,7 +145,8 @@ class Block(nn.Module):
             sparsity: float = 0.8,
             act_layer: Type[nn.Module] = nn.GELU,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
-            mlp_layer: Type[nn.Module] = MaskedMLP,
+            #mlp_layer: Type[nn.Module] = MaskedMLP,
+            mlp_layer: Type[nn.Module] = AutoShuffleMLP,
     ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -480,7 +482,8 @@ class VisionTransformer(nn.Module):
             norm_layer: Optional[LayerType] = None,
             act_layer: Optional[LayerType] = None,
             block_fn: Type[nn.Module] = Block,
-            mlp_layer: Type[nn.Module] = MaskedMLP,
+            #mlp_layer: Type[nn.Module] = MaskedMLP,
+            mlp_layer: Type[nn.Module] = AutoShuffleMLP,
     ) -> None:
         """
         Args:

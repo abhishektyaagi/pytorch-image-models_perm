@@ -19,7 +19,7 @@ import torch.nn.functional as F
 from .format import Format, nchw_to
 from .helpers import to_2tuple
 from .trace_utils import _assert
-from timm.layers.mlp import MaskedLinear, MaskedMLP
+from timm.layers.mlp import MaskedLinear, MaskedMLP, AutoShuffleLinear, AutoShuffleMLP
 
 _logger = logging.getLogger(__name__)
 
@@ -357,7 +357,8 @@ class PatchEmbedLinear(nn.Module):
         #self.proj = nn.Linear(in_features, embed_dim, bias=bias)
         #print("Sparsity type in projection layer: ", sparsityType)
         #print("Sparsity in projection layer: ", sparsity)
-        self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
+        #self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
+        self.proj = AutoShuffleLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
 
         # Optional per-patch normalization
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()

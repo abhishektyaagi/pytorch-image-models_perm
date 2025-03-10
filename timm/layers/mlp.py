@@ -11,6 +11,28 @@ from .helpers import to_2tuple
 from timm.utils import permDiag
 import torch
 from timm.utils.permDiag import get_mask_diagonal_torch, permDiag, get_mask_unstructured_torch
+#from timm.loss.autoshuffle_loss import l1_l2_penalty, threshold_and_normalize
+
+def threshold_and_normalize(M: torch.Tensor) -> None:
+    """
+    - Threshold to ensure non-negative
+    - Column-normalize
+    - Row-normalize
+    in-place on M.
+    """
+    with torch.no_grad():
+        # clamp negatives
+        M.clamp_(min=0.0)
+
+        # column normalize
+        col_sums = M.sum(dim=0, keepdim=True)
+        col_sums = torch.where(col_sums == 0, torch.ones_like(col_sums), col_sums)
+        M.div_(col_sums)
+
+        # row normalize
+        row_sums = M.sum(dim=1, keepdim=True)
+        row_sums = torch.where(row_sums == 0, torch.ones_like(row_sums), row_sums)
+        M.div_(row_sums)
 
 class Mlp(nn.Module):
     """ MLP as used in Vision Transformer, MLP-Mixer and related networks
@@ -125,6 +147,125 @@ class MaskedMLP(nn.Module):
         x = self.fc2(x)
         x = self.drop(x)
         return x
+
+class AutoShuffleLinear(nn.Module):
+    """
+    A linear layer W' = P_left * W * P_right, where P_left, P_right are
+    trainable NxN matrices that we relax to doubly-stochastic with L1-L2 penalty.
+
+    If out_features = O, in_features = I, then:
+      - P_left  is shape (O, O)
+      - P_right is shape (I, I)
+      - W       is shape (O, I)
+    """
+    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, sparsityType='random', device='cuda'):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        
+        self.linear = nn.Linear(in_features, out_features, bias=bias)
+
+        self.bias = self.linear.bias 
+
+        if sparsityType == 'random':
+            diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
+        elif sparsityType == 'diag':
+            diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+        elif sparsityType == 'permDiag':
+            diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
+            diag_mask = permDiag(diag_mask, device=device)
+        #elif sparsityType == 'k:m':
+        else:
+            raise ValueError('Invalid sparsityType')
+       
+        diag_mask = diag_mask.to(self.linear.weight.device)
+
+        # Register the final mask as a buffer so that it does not update with gradients
+        self.register_buffer('mask', diag_mask)
+
+        # Permanently apply the mask on initialization
+        with torch.no_grad():
+            self.linear.weight.data.mul_(self.mask)
+
+        # The normal "base" weight
+        #self.weight = nn.Parameter(torch.empty(out_features, in_features))
+        #nn.init.kaiming_uniform_(self.weight, a=5**0.5)  # or any init you like
+
+        # Optional bias
+        #if bias:
+        #    self.bias = nn.Parameter(torch.zeros(out_features))
+        #else:
+        #    self.bias = None
+
+        # Initialize the P_left and P_right as random nonnegative so we can clamp/normalize
+        P_left_init = torch.rand(out_features, out_features)
+        #P_right_init = torch.rand(in_features, in_features)
+
+        # Make them nn.Parameters so they're trained
+        self.P_left = nn.Parameter(P_left_init)
+        #self.P_right = nn.Parameter(P_right_init)
+
+    def forward(self, x):
+        # The relaxed shuffle weight:
+        #   w' = P_left @ weight
+        w = self.linear.weight * self.mask
+        w_dash = self.P_left @ w
+        return F.linear(x, w_dash, self.bias)
+
+    def post_update_clamp_and_norm(self):
+        """
+        Call this after each optimizer step to clamp negative entries
+        and do row/column normalization for both P_left and P_right.
+        """
+        threshold_and_normalize(self.P_left)
+        #threshold_and_normalize(self.P_right)
+    
+    def apply_mask(self):
+        """Reapply the mask to ensure the zeroed weights remain zero."""
+        with torch.no_grad():
+            self.linear.weight.data.mul_(self.mask)
+
+class AutoShuffleMLP(nn.Module):
+    def __init__(
+        self,
+        in_features,
+        hidden_features=None,
+        out_features=None,
+        act_layer=nn.GELU,
+        sparsity=0.8, 
+        bias=True,
+        sparsityType='random',
+        drop=0.,
+    ):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+
+        self.fc1 = AutoShuffleLinear(in_features, hidden_features, bias=True, sparsity=sparsity, sparsityType=sparsityType)
+        self.act = act_layer()
+        self.drop = nn.Dropout(drop)
+        self.fc2 = AutoShuffleLinear(hidden_features, out_features, bias=True, sparsity=sparsity, sparsityType=sparsityType)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
+
+    def post_update_clamp_and_norm(self):
+        """
+        Convenience method to clamp/normalize after each optimizer.step().
+        """
+        self.fc1.post_update_clamp_and_norm()
+        self.fc2.post_update_clamp_and_norm()
+
+def auto_shuffle_penalty(module: AutoShuffleLinear) -> torch.Tensor:
+    """
+    Compute the L1-L2 penalty for P_left + P_right.
+    """
+    return l1_l2_penalty(module.P_left) + l1_l2_penalty(module.P_right)
 
 class GluMlp(nn.Module):
     """ MLP w/ GLU style gating

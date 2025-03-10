@@ -3,3 +3,4 @@ from .binary_cross_entropy import BinaryCrossEntropy
 from .cross_entropy import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from .jsd import JsdCrossEntropy
 from .rowcol_loss import KNonzeroRowColPenalty
+from .autoshuffle_loss import l1_l2_penalty, threshold_and_normalize, auto_shuffle_penalty
