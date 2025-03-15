@@ -10,7 +10,7 @@ from .grn import GlobalResponseNorm
 from .helpers import to_2tuple
 from timm.utils import permDiag
 import torch
-from timm.utils.permDiag import get_mask_diagonal_torch, permDiag, get_mask_unstructured_torch
+from timm.utils.permDiag import get_mask_diagonal_torch, permStruc, get_mask_unstructured_torch, get_mask_block_torch, get_mask_nm_torch
 #from timm.loss.autoshuffle_loss import l1_l2_penalty, threshold_and_normalize
 
 def threshold_and_normalize(M: torch.Tensor) -> None:
@@ -90,8 +90,17 @@ class MaskedLinear(nn.Module):
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
         elif sparsityType == 'permDiag':
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
-            diag_mask = permDiag(diag_mask, device=device)
-        #elif sparsityType == 'k:m':
+            diag_mask = permStruc(diag_mask, device=device)
+        elif sparsityType == 'km':
+            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, device=device)
+        elif sparsityType == 'block':
+            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=4, device=device)
+        elif sparsityType == 'permkm':
+            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, device=device)
+            diag_mask = permStruc(diag_mask, device=device)
+        elif sparsityType == 'permBlock':
+            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=4, device=device)
+            diag_mask = permStruc(diag_mask, device=device)
         else:
             raise ValueError('Invalid sparsityType')
        
