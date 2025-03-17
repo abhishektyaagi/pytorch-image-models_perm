@@ -77,7 +77,7 @@ class MaskedLinear(nn.Module):
     """
     A linear layer that multiplies its weight by a (fixed) binary mask each forward pass.
     """
-    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, sparsityType='random', device='cuda'):
+    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, sparsityType='random', n=2,m=4,block_size=2 ,device='cuda'):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
@@ -92,14 +92,14 @@ class MaskedLinear(nn.Module):
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
             diag_mask = permStruc(diag_mask, device=device)
         elif sparsityType == 'km':
-            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, device=device)
+            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, n, m, device=device)
         elif sparsityType == 'block':
-            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=4, device=device)
+            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=block_size, device=device)
         elif sparsityType == 'permkm':
-            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, device=device)
+            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, n, m, device=device)
             diag_mask = permStruc(diag_mask, device=device)
         elif sparsityType == 'permBlock':
-            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=4, device=device)
+            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=block_size, device=device)
             diag_mask = permStruc(diag_mask, device=device)
         else:
             raise ValueError('Invalid sparsityType')
@@ -137,6 +137,9 @@ class MaskedMLP(nn.Module):
         sparsity=0.8, 
         bias=True,
         sparsityType='random',
+        n=2,
+        m=4,
+        block_size=2,
         device='cuda'
     ):
         super().__init__()
@@ -144,9 +147,9 @@ class MaskedMLP(nn.Module):
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
 
-        self.fc1 = MaskedLinear(in_features, hidden_features, bias=True, sparsity=sparsity, device=device)
+        self.fc1 = MaskedLinear(in_features, hidden_features, bias=True, sparsity=sparsity, n=n, m=m, block_size=block_size, device=device)
         self.act = act_layer()
-        self.fc2 = MaskedLinear(hidden_features, out_features, bias=True, sparsity=sparsity, device=device)
+        self.fc2 = MaskedLinear(hidden_features, out_features, bias=True, sparsity=sparsity, n=n, m=m, block_size=block_size, device=device)
         self.drop = nn.Dropout(drop)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

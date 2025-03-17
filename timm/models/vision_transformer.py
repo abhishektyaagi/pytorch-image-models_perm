@@ -70,6 +70,9 @@ class Attention(nn.Module):
             norm_layer: Type[nn.Module] = nn.LayerNorm,
             sparsityType: str = 'random',
             sparsity: float = 0.8,
+            n: int = 4,
+            m: int = 8,
+            block_size: int = 2,
     ) -> None:
         super().__init__()
         assert dim % num_heads == 0, 'dim should be divisible by num_heads'
@@ -84,7 +87,7 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
 
         #self.proj = nn.Linear(dim, dim, bias=proj_bias)
-        self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
+        self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity,n=n,m=m,block_size=block_size)
         #self.proj = AutoShuffleMLP(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)
@@ -143,6 +146,9 @@ class Block(nn.Module):
             drop_path: float = 0.,
             sparsityType: str = 'random',
             sparsity: float = 0.8,
+            n: int = 4,
+            m: int = 8,
+            block_size: int = 2,
             act_layer: Type[nn.Module] = nn.GELU,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
             mlp_layer: Type[nn.Module] = MaskedMLP,
@@ -174,6 +180,9 @@ class Block(nn.Module):
             drop=proj_drop,
             sparsityType=sparsityType,
             sparsity=sparsity,
+            n=n,
+            m=m,
+            block_size=block_size,
         )
         self.ls2 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path2 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
@@ -475,6 +484,9 @@ class VisionTransformer(nn.Module):
             drop_path_rate: float = 0.,
             sparsity: float = 0.,
             sparsityType: str = 'random',
+            n=4,
+            m=8,
+            block_size=2,
             weight_init: Literal['skip', 'jax', 'jax_nlhb', 'moco', ''] = '',
             fix_init: bool = False,
             embed_layer: Callable = PatchEmbed,
@@ -537,6 +549,9 @@ class VisionTransformer(nn.Module):
         self.grad_checkpointing = False
         self.sparsityType = sparsityType
         self.sparsity = sparsity
+        self.n = n
+        self.m = m
+        self.block_size = block_size
 
         print("Sparsity Type: ",self.sparsityType)
         print("Sparsity: ",self.sparsity)
@@ -566,6 +581,9 @@ class VisionTransformer(nn.Module):
             norm_layer=embed_norm_layer,
             sparsity=self.sparsity,
             sparsityType=self.sparsityType,
+            n=self.n,
+            m=self.m,
+            block_size=self.block_size,
         )
         num_patches = self.patch_embed.num_patches
         reduction = self.patch_embed.feat_ratio() if hasattr(self.patch_embed, 'feat_ratio') else patch_size
@@ -604,7 +622,10 @@ class VisionTransformer(nn.Module):
                 act_layer=act_layer,
                 sparsity=sparsity,
                 sparsityType=sparsityType,
-                mlp_layer=partial(mlp_layer,sparsityType=self.sparsityType, sparsity=self.sparsity),
+                n=n,
+                m=m,
+                block_size=block_size,
+                mlp_layer=partial(mlp_layer,sparsityType=self.sparsityType, sparsity=self.sparsity,n=n,m=m,block_size=block_size),
                 #mlp_layer=mlp_layer,
             )
             for i in range(depth)])

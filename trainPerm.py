@@ -401,6 +401,9 @@ group.add_argument('--sparsity', type=float, default=0.0, metavar='PCT',
                    help='Sparsity (default: 0.0)')
 group.add_argument('--sparsityType', type=str, default='random',
                    help='Sparsity type (default: random)')
+group.add_argument('--nm_n', type=int, default=4, metavar='N', help='n for N:M pattern')
+group.add_argument('--nm_m', type=int, default=4, metavar='M', help='m for N:M pattern')
+group.add_argument('--block_size', type=int, default=4, metavar='N', help='block size for block sparsity pattern')
 
 
 def _parse_args():
@@ -502,6 +505,9 @@ def main():
         scriptable=args.torchscript,
         sparsityType=args.sparsityType,
         sparsity=args.sparsity,
+        n=args.nm_n,
+        m=args.nm_m,
+        block_size=args.block_size,
         checkpoint_path=args.initial_checkpoint,
         **factory_kwargs,
         **args.model_kwargs,

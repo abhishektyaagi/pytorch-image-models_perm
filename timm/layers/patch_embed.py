@@ -324,6 +324,9 @@ class PatchEmbedLinear(nn.Module):
         dynamic_img_pad=False,
         sparsityType='random',
         sparsity=0.9,
+        n=2,
+        m=3,
+        block_size=2,
     ):
         """
         Args:
@@ -357,7 +360,7 @@ class PatchEmbedLinear(nn.Module):
         #self.proj = nn.Linear(in_features, embed_dim, bias=bias)
         #print("Sparsity type in projection layer: ", sparsityType)
         #print("Sparsity in projection layer: ", sparsity)
-        self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
+        self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity, n=n, m=m, block_size=block_size)
         #self.proj = AutoShuffleLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
 
         # Optional per-patch normalization
