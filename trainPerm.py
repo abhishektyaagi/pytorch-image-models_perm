@@ -404,6 +404,7 @@ group.add_argument('--sparsityType', type=str, default='random',
 group.add_argument('--nm_n', type=int, default=4, metavar='N', help='n for N:M pattern')
 group.add_argument('--nm_m', type=int, default=4, metavar='M', help='m for N:M pattern')
 group.add_argument('--block_size', type=int, default=4, metavar='N', help='block size for block sparsity pattern')
+group.add_argument('--mlp_layer', type=str, default='Mlp', help='Type of linear layer to use. Options: MaskedMLP, AutoShuffleMLP, Mlp')
 
 
 def _parse_args():

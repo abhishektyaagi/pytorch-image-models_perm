@@ -170,7 +170,7 @@ class AutoShuffleLinear(nn.Module):
       - P_right is shape (I, I)
       - W       is shape (O, I)
     """
-    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, sparsityType='random', device='cuda'):
+    def __init__(self, in_features, out_features, bias=True, sparsity=0.8, sparsityType='random', n=2, m=4, block_size=2, device='cuda'):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -185,8 +185,17 @@ class AutoShuffleLinear(nn.Module):
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
         elif sparsityType == 'permDiag':
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
-            diag_mask = permDiag(diag_mask, device=device)
-        #elif sparsityType == 'k:m':
+            diag_mask = permStruc(diag_mask, device=device)
+        elif sparsityType == 'km':
+            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, n, m, device=device)
+        elif sparsityType == 'block':
+            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=block_size, device=device)
+        elif sparsityType == 'permkm':
+            diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, n, m, device=device)
+            diag_mask = permStruc(diag_mask, device=device)
+        elif sparsityType == 'permBlock':
+            diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=block_size, device=device)
+            diag_mask = permStruc(diag_mask, device=device)
         else:
             raise ValueError('Invalid sparsityType')
        
@@ -248,15 +257,18 @@ class AutoShuffleMLP(nn.Module):
         bias=True,
         sparsityType='random',
         drop=0.,
+        n=2,
+        m=4,
+        block_size=2,
     ):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
 
-        self.fc1 = AutoShuffleLinear(in_features, hidden_features, bias=True, sparsity=sparsity, sparsityType=sparsityType)
+        self.fc1 = AutoShuffleLinear(in_features, hidden_features, bias=True, sparsity=sparsity, sparsityType=sparsityType, n=n, m=m, block_size=block_size)
         self.act = act_layer()
         self.drop = nn.Dropout(drop)
-        self.fc2 = AutoShuffleLinear(hidden_features, out_features, bias=True, sparsity=sparsity, sparsityType=sparsityType)
+        self.fc2 = AutoShuffleLinear(hidden_features, out_features, bias=True, sparsity=sparsity, sparsityType=sparsityType, n=n, m=m, block_size=block_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc1(x)

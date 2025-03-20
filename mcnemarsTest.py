@@ -231,7 +231,7 @@ def evaluatepval(args):
     )
 
     # 5) Run McNemar’s test
-    results = mcnemar_test_on_models(modelA, modelB, loader_eval, device, alpha=args.alpha)
+    results = mcnemar_test_on_models(modelA, modelB, loader_eval, device, alpha=0.05)
 
     # 6) Print outcomes
     print("=== McNemar’s Test Results ===")
@@ -239,11 +239,11 @@ def evaluatepval(args):
     print(f"Statistic        : {results['statistic']}")
     print(f"P-value          : {results['pvalue']:.6f}")
     if results['significant']:
-        print(f"Models differ significantly at alpha={args.alpha}.")
+        print(f"Models differ significantly at alpha={0.05}.")
     else:
-        print(f"No significant difference at alpha={args.alpha}.")
+        print(f"No significant difference at alpha={0.05}.")
 
-def main():
+""" def main():
     args = parse_args()
 
     # 1) Create the validation dataset
@@ -313,7 +313,7 @@ def main():
     )
 
     # 5) Run McNemar’s test
-    results = mcnemar_test_on_models(modelA, modelB, loader_eval, device, alpha=args.alpha)
+    results = mcnemar_test_on_models(modelA, modelB, loader_eval, device, alpha=0.05)
 
     # 6) Print outcomes
     print("=== McNemar’s Test Results ===")
@@ -321,9 +321,10 @@ def main():
     print(f"Statistic        : {results['statistic']}")
     print(f"P-value          : {results['pvalue']:.6f}")
     if results['significant']:
-        print(f"Models differ significantly at alpha={args.alpha}.")
+        print(f"Models differ significantly at alpha={0.05}.")
     else:
-        print(f"No significant difference at alpha={args.alpha}.")
+        print(f"No significant difference at alpha={0.05}.")
 
 if __name__ == '__main__':
     main()
+ """

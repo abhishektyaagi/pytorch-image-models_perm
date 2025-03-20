@@ -68,6 +68,7 @@ class Attention(nn.Module):
             attn_drop: float = 0.,
             proj_drop: float = 0.,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
+            mlp_layer=Mlp,
             sparsityType: str = 'random',
             sparsity: float = 0.8,
             n: int = 4,
@@ -86,9 +87,12 @@ class Attention(nn.Module):
         self.k_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
         self.attn_drop = nn.Dropout(attn_drop)
 
-        #self.proj = nn.Linear(dim, dim, bias=proj_bias)
-        self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity,n=n,m=m,block_size=block_size)
-        #self.proj = AutoShuffleMLP(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
+        if mlp_layer == Mlp:
+            self.proj = nn.Linear(dim, dim, bias=proj_bias)
+        elif mlp_layer == MaskedMLP:
+            self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity,n=n,m=m,block_size=block_size)
+        else:
+            self.proj = AutoShuffleMLP(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)
 
@@ -151,39 +155,68 @@ class Block(nn.Module):
             block_size: int = 2,
             act_layer: Type[nn.Module] = nn.GELU,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
-            mlp_layer: Type[nn.Module] = MaskedMLP,
+            mlp_layer: Type[nn.Module] = Mlp,
             #mlp_layer: Type[nn.Module] = AutoShuffleMLP,
     ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)
-        self.attn = Attention(
-            dim,
-            num_heads=num_heads,
-            qkv_bias=qkv_bias,
-            qk_norm=qk_norm,
-            proj_bias=proj_bias,
-            attn_drop=attn_drop,
-            proj_drop=proj_drop,
-            norm_layer=norm_layer,
-            sparsityType=sparsityType,
-            sparsity=sparsity,
-        )
+
+        if mlp_layer == Mlp:
+            self.attn = Attention(
+                dim,
+                num_heads=num_heads,
+                qkv_bias=qkv_bias,
+                qk_norm=qk_norm,
+                proj_bias=proj_bias,
+                attn_drop=attn_drop,
+                proj_drop=proj_drop,
+                norm_layer=norm_layer,
+            )
+        else
+            self.attn = Attention(
+                dim,
+                num_heads=num_heads,
+                qkv_bias=qkv_bias,
+                qk_norm=qk_norm,
+                proj_bias=proj_bias,
+                attn_drop=attn_drop,
+                proj_drop=proj_drop,
+                norm_layer=norm_layer,
+                sparsityType=sparsityType,
+                sparsity=sparsity,
+                mlp_layer=Mlp,
+                sparsityType = 'random',
+                sparsity = 0.8,
+                n = 4,
+                m = 8,
+                block_size = 2,
+            )
         self.ls1 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
         self.norm2 = norm_layer(dim)
-        self.mlp = mlp_layer(
-            in_features=dim,
-            hidden_features=int(dim * mlp_ratio),
-            act_layer=act_layer,
-            bias=proj_bias,
-            drop=proj_drop,
-            sparsityType=sparsityType,
-            sparsity=sparsity,
-            n=n,
-            m=m,
-            block_size=block_size,
-        )
+
+        if mlp_layer == Mlp:
+            self.mlp = mlp_layer(
+                in_features=dim,
+                hidden_features=int(dim * mlp_ratio),
+                act_layer=act_layer,
+                bias=proj_bias,
+                drop=proj_drop,
+            )
+        else:
+            self.mlp = mlp_layer(
+                in_features=dim,
+                hidden_features=int(dim * mlp_ratio),
+                act_layer=act_layer,
+                bias=proj_bias,
+                drop=proj_drop,
+                sparsityType=sparsityType,
+                sparsity=sparsity,
+                n=n,
+                m=m,
+                block_size=block_size,
+            )
         self.ls2 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path2 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
@@ -494,7 +527,8 @@ class VisionTransformer(nn.Module):
             norm_layer: Optional[LayerType] = None,
             act_layer: Optional[LayerType] = None,
             block_fn: Type[nn.Module] = Block,
-            mlp_layer: Type[nn.Module] = MaskedMLP,
+            mlp_layer: Type[nn.Module] = Mlp,
+            #mlp_layer: Type[nn.Module] = MaskedMLP,
             #mlp_layer: Type[nn.Module] = AutoShuffleMLP,
     ) -> None:
         """
