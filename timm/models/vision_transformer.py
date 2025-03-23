@@ -26,6 +26,7 @@ Hacked together by / Copyright 2020, Ross Wightman
 import copy
 import logging
 import math
+import pdb
 from collections import OrderedDict
 from functools import partial
 from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, Union, List
@@ -86,7 +87,7 @@ class Attention(nn.Module):
         self.q_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
         self.k_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
         self.attn_drop = nn.Dropout(attn_drop)
-
+        
         if mlp_layer == Mlp:
             print("In basic MLP block")
             self.proj = nn.Linear(dim, dim, bias=proj_bias)
@@ -654,8 +655,6 @@ class VisionTransformer(nn.Module):
         else:
             self.patch_drop = nn.Identity()
         self.norm_pre = norm_layer(embed_dim) if pre_norm else nn.Identity()
-I       import pdb
-        pdb.set_trace()
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
         self.blocks = nn.Sequential(*[
             block_fn(
@@ -676,8 +675,8 @@ I       import pdb
                 n=n,
                 m=m,
                 block_size=block_size,
-                mlp_layer=partial(mlp_layer,sparsityType=self.sparsityType, sparsity=self.sparsity,n=n,m=m,block_size=block_size),
-                #mlp_layer=mlp_layer,
+                #mlp_layer=partial(mlp_layer,sparsityType=self.sparsityType, sparsity=self.sparsity,n=n,m=m,block_size=block_size),
+                mlp_layer=mlp_layer,
             )
             for i in range(depth)])
         self.feature_info = [
