@@ -88,10 +88,13 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
 
         if mlp_layer == Mlp:
+            print("In basic MLP block")
             self.proj = nn.Linear(dim, dim, bias=proj_bias)
         elif mlp_layer == MaskedMLP:
+            print("In MaksedMLP")
             self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity,n=n,m=m,block_size=block_size)
         else:
+            print("In AutoShuffleMLP")
             self.proj = AutoShuffleMLP(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)
@@ -162,6 +165,7 @@ class Block(nn.Module):
         self.norm1 = norm_layer(dim)
 
         if mlp_layer == Mlp:
+            print("In Attention IF with basic MLP")
             self.attn = Attention(
                 dim,
                 num_heads=num_heads,
@@ -172,7 +176,8 @@ class Block(nn.Module):
                 proj_drop=proj_drop,
                 norm_layer=norm_layer,
             )
-        else
+        else:
+            print("In Attention IF with not basic MLP")
             self.attn = Attention(
                 dim,
                 num_heads=num_heads,
@@ -197,6 +202,7 @@ class Block(nn.Module):
         self.norm2 = norm_layer(dim)
 
         if mlp_layer == Mlp:
+            print("In basic MLP in mlp_layer block")
             self.mlp = mlp_layer(
                 in_features=dim,
                 hidden_features=int(dim * mlp_ratio),
@@ -205,6 +211,7 @@ class Block(nn.Module):
                 drop=proj_drop,
             )
         else:
+            print("In not basic MLP in mlp_layer block")
             self.mlp = mlp_layer(
                 in_features=dim,
                 hidden_features=int(dim * mlp_ratio),
