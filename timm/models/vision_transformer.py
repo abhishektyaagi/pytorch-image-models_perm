@@ -95,7 +95,7 @@ class Attention(nn.Module):
             self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity,n=n,m=m,block_size=block_size)
         else:
             print("In AutoShuffleMLP")
-            self.proj = AutoShuffleMLP(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
+            self.proj = AutoShuffleLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)
 
