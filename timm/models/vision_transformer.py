@@ -190,11 +190,9 @@ class Block(nn.Module):
                 sparsityType=sparsityType,
                 sparsity=sparsity,
                 mlp_layer=mlp_layer,
-                sparsityType = 'random',
-                sparsity = 0.8,
-                n = 4,
-                m = 8,
-                block_size = 2,
+                n = n,
+                m = m,
+                block_size = block_size,
             )
         self.ls1 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
         self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
@@ -524,9 +522,9 @@ class VisionTransformer(nn.Module):
             drop_path_rate: float = 0.,
             sparsity: float = 0.,
             sparsityType: str = 'random',
-            n=4,
-            m=8,
-            block_size=2,
+            n: int = 4,
+            m: int = 8,
+            block_size: int = 2,
             weight_init: Literal['skip', 'jax', 'jax_nlhb', 'moco', ''] = '',
             fix_init: bool = False,
             embed_layer: Callable = PatchEmbed,
