@@ -41,7 +41,9 @@ from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler_v2, scheduler_kwargs
 from timm.utils import ApexScaler, NativeScaler
 from timm.utils import permDiag
-from timm.layers import MaskedLinear, AutoShuffleLinear, AutoShuffleMLP
+from timm.layers import PatchEmbed, PatchEmbedLinear, Mlp, MaskedMLP, MaskedLinear, AutoShuffleLinear, AutoShuffleMLP, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, SwiGLU, \
+    trunc_normal_, lecun_normal_, resample_patch_embed, resample_abs_pos_embed, use_fused_attn, \
+    get_act_layer, get_norm_layer, LayerType
 
 try:
     from apex import amp
