@@ -407,6 +407,14 @@ group.add_argument('--block_size', type=int, default=4, metavar='N', help='block
 group.add_argument('--mlp_layer', type=str, default='Mlp', help='Type of linear layer to use. Options: MaskedMLP, AutoShuffleMLP, Mlp')
 
 
+mlp_layer_map = {
+    'Mlp': Mlp,
+    'MaskedMLP': MaskedMLP,
+    'AutoShuffleMLP': AutoShuffleMLP
+}
+
+chosen_mlp_layer = mlp_layer_map[args.mlp_layer]
+
 def _parse_args():
     # Do we have a config file to parse?
     args_config, remaining = config_parser.parse_known_args()
@@ -509,6 +517,7 @@ def main():
         n=args.nm_n,
         m=args.nm_m,
         block_size=args.block_size,
+        mlp_layer=chosen_mlp_layer,
         checkpoint_path=args.initial_checkpoint,
         **factory_kwargs,
         **args.model_kwargs,
