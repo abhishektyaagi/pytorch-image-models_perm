@@ -327,6 +327,7 @@ class PatchEmbedLinear(nn.Module):
         n=2,
         m=3,
         block_size=2,
+        mlp_layer= 'Mlp',
     ):
         """
         Args:
@@ -357,11 +358,17 @@ class PatchEmbedLinear(nn.Module):
         in_features = patch_area * in_chans
 
         # The linear projection from patch_in -> embed_dim
-        #self.proj = nn.Linear(in_features, embed_dim, bias=bias)
         #print("Sparsity type in projection layer: ", sparsityType)
         #print("Sparsity in projection layer: ", sparsity)
-        self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity, n=n, m=m, block_size=block_size)
-        #self.proj = AutoShuffleLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
+        if mlp_layer == 'Mlp':
+            print("Using Mlp layer in patch embedding")
+            self.proj = nn.Linear(in_features, embed_dim, bias=bias)
+        elif mlp_layer == 'MaskedMLP':
+            print("Using MaskedMlp layer in patch embedding")
+            self.proj = MaskedLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity, n=n, m=m, block_size=block_size)
+        else:
+            print("Using AutoShuffle layer in patch embedding")
+            self.proj = AutoShuffleLinear(in_features, embed_dim, bias=bias, sparsityType=sparsityType, sparsity=sparsity)
 
         # Optional per-patch normalization
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()

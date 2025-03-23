@@ -68,7 +68,7 @@ class Attention(nn.Module):
             attn_drop: float = 0.,
             proj_drop: float = 0.,
             norm_layer: Type[nn.Module] = nn.LayerNorm,
-            mlp_layer=Mlp,
+            mlp_layer: Type[nn.Module] = Mlp,
             sparsityType: str = 'random',
             sparsity: float = 0.8,
             n: int = 4,
@@ -165,7 +165,7 @@ class Block(nn.Module):
         self.norm1 = norm_layer(dim)
 
         if mlp_layer == Mlp:
-            print("In Attention IF with basic MLP")
+            print("In BLOCK IF with basic MLP")
             self.attn = Attention(
                 dim,
                 num_heads=num_heads,
@@ -177,7 +177,7 @@ class Block(nn.Module):
                 norm_layer=norm_layer,
             )
         else:
-            print("In Attention IF with not basic MLP")
+            print("In BLOCK IF with not basic MLP")
             self.attn = Attention(
                 dim,
                 num_heads=num_heads,
@@ -189,7 +189,7 @@ class Block(nn.Module):
                 norm_layer=norm_layer,
                 sparsityType=sparsityType,
                 sparsity=sparsity,
-                mlp_layer=Mlp,
+                mlp_layer=mlp_layer,
                 sparsityType = 'random',
                 sparsity = 0.8,
                 n = 4,
@@ -603,7 +603,16 @@ class VisionTransformer(nn.Module):
             embed_args.update(dict(strict_img_size=False, output_fmt='NHWC'))
         if embed_norm_layer is not None:
             embed_args['norm_layer'] = embed_norm_layer
-        """ self.patch_embed = embed_layer(
+        
+        if mlp_layer == Mlp:
+            mlpParam = 'Mlp'
+        elif mlp_layer == MaskedMLP:
+            mlpParam = 'MaskedMLP'
+        else:
+            mlpParam = 'AutoShuffleMLP'
+
+        if mlp_layer == Mlp:
+            self.patch_embed = embed_layer(
             img_size=img_size,
             patch_size=patch_size,
             in_chans=in_chans,
@@ -611,21 +620,23 @@ class VisionTransformer(nn.Module):
             bias=not pre_norm,  # disable bias if pre-norm is used (e.g. CLIP)
             dynamic_img_pad=dynamic_img_pad,
             **embed_args,
-        ) """
-        self.patch_embed = PatchEmbedLinear(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=in_chans,
-            embed_dim=embed_dim,
-            bias=not pre_norm,       # e.g. same logic from the original code
-            dynamic_img_pad=dynamic_img_pad,
-            norm_layer=embed_norm_layer,
-            sparsity=self.sparsity,
-            sparsityType=self.sparsityType,
-            n=self.n,
-            m=self.m,
-            block_size=self.block_size,
-        )
+            )
+        else:
+            self.patch_embed = PatchEmbedLinear(
+                img_size=img_size,
+                patch_size=patch_size,
+                in_chans=in_chans,
+                embed_dim=embed_dim,
+                bias=not pre_norm,       # e.g. same logic from the original code
+                dynamic_img_pad=dynamic_img_pad,
+                norm_layer=embed_norm_layer,
+                sparsity=self.sparsity,
+                sparsityType=self.sparsityType,
+                n=self.n,
+                m=self.m,
+                mlp_layer=mlpParam,
+                block_size=self.block_size,
+            )
         num_patches = self.patch_embed.num_patches
         reduction = self.patch_embed.feat_ratio() if hasattr(self.patch_embed, 'feat_ratio') else patch_size
 
