@@ -409,13 +409,6 @@ group.add_argument('--block_size', type=int, default=4, metavar='N', help='block
 group.add_argument('--mlp_layer', type=str, default='Mlp', help='Type of linear layer to use. Options: MaskedMLP, AutoShuffleMLP, Mlp')
 
 
-mlp_layer_map = {
-    'Mlp': Mlp,
-    'MaskedMLP': MaskedMLP,
-    'AutoShuffleMLP': AutoShuffleMLP
-}
-
-chosen_mlp_layer = mlp_layer_map[args.mlp_layer]
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -500,6 +493,13 @@ def main():
             num_classes=-1,  # force head adaptation
         )
 
+    mlp_layer_map = {
+        'Mlp': Mlp,
+        'MaskedMLP': MaskedMLP,
+        'AutoShuffleMLP': AutoShuffleMLP
+    }
+
+    chosen_mlp_layer = mlp_layer_map[args.mlp_layer]
     print("Sparsity Type: ",args.sparsityType)
     print("Sparsity: ",args.sparsity)
     model = create_model(
