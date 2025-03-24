@@ -1043,7 +1043,10 @@ def train_one_epoch(
     update_time_m = utils.AverageMeter()
     data_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
-
+    # --- ADD meters for training accuracy ---
+    top1_m = utils.AverageMeter()
+    top5_m = utils.AverageMeter()
+    # ------------------------------------------
     model.train()
 
     accum_steps = args.grad_accum_steps
@@ -1097,6 +1100,12 @@ def train_one_epoch(
             
             if accum_steps > 1:
                 loss /= accum_steps
+            # --- COMPUTE ACCURACY on this mini-batch for logging ---
+            #   For mixup, top1/top5 can be meaningless, but you can still measure it if desired.
+            if not mixup_fn:  # or skip if you're okay w/ approximate for mixup
+                acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
+                top1_m.update(acc1.item(), output.size(0))
+                top5_m.update(acc5.item(), output.size(0))
             return loss
 
         def _backward(_loss):
@@ -1166,10 +1175,16 @@ def train_one_epoch(
             lr = sum(lrl) / len(lrl)
 
             loss_avg, loss_now = losses_m.avg, losses_m.val
+            top1_avg, top1_now = top1_m.avg, top1_m.val
+            top5_avg, top5_now = top5_m.avg, top5_m.val
             if args.distributed:
                 # synchronize current step and avg loss, each process keeps its own running avg
                 loss_avg = utils.reduce_tensor(loss.new([loss_avg]), args.world_size).item()
                 loss_now = utils.reduce_tensor(loss.new([loss_now]), args.world_size).item()
+                top1_avg = utils.reduce_tensor(loss.new([top1_avg]), args.world_size).item()
+                top1_now = utils.reduce_tensor(loss.new([top1_now]), args.world_size).item()
+                top5_avg = utils.reduce_tensor(loss.new([top5_avg]), args.world_size).item()
+                top5_now = utils.reduce_tensor(loss.new([top5_now]), args.world_size).item()
                 update_sample_count *= args.world_size
 
             if utils.is_primary(args):
@@ -1177,6 +1192,8 @@ def train_one_epoch(
                     f'Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} '
                     f'({100. * (update_idx + 1) / updates_per_epoch:>3.0f}%)]  '
                     f'Loss: {loss_now:#.3g} ({loss_avg:#.3g})  '
+                    f'Top1: {top1_now:>7.3f} ({top1_avg:>7.3f})  '
+                    f'Top5: {top5_now:>7.3f} ({top5_avg:>7.3f})  '
                     f'Time: {update_time_m.val:.3f}s, {update_sample_count / update_time_m.val:>7.2f}/s  '
                     f'({update_time_m.avg:.3f}s, {update_sample_count / update_time_m.avg:>7.2f}/s)  '
                     f'LR: {lr:.3e}  '
@@ -1206,11 +1223,20 @@ def train_one_epoch(
         optimizer.sync_lookahead()
 
     loss_avg = losses_m.avg
+    top1_avg = top1_m.avg
+    top5_avg = top5_m.avg
     if args.distributed:
         # synchronize avg loss, each process keeps its own running avg
         loss_avg = torch.tensor([loss_avg], device=device, dtype=torch.float32)
         loss_avg = utils.reduce_tensor(loss_avg, args.world_size).item()
-    return OrderedDict([('loss', loss_avg)])
+        top1_avg = utils.reduce_tensor(torch.tensor(top1_avg, device=device), args.world_size).item()
+        top5_avg = utils.reduce_tensor(torch.tensor(top5_avg, device=device), args.world_size).item()
+
+    return OrderedDict([
+        ('loss', loss_avg),
+        ('top1', top1_avg),
+        ('top5', top5_avg),
+    ])
 
 
 def validate(
