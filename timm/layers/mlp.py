@@ -86,20 +86,27 @@ class MaskedLinear(nn.Module):
         #diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
         #diag_mask = permDiag(diag_mask, device=device)
         if sparsityType == 'random':
+            print("Random mask")
             diag_mask = get_mask_unstructured_torch((out_features, in_features), sparsity, device=device)
         elif sparsityType == 'diag':
+            print("Diagonal mask")
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
         elif sparsityType == 'permDiag':
+            print("Permuted Diagonal mask")
             diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
             diag_mask = permStruc(diag_mask, device=device)
         elif sparsityType == 'km':
+            print("NM mask")
             diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, n, m, device=device)
         elif sparsityType == 'block':
+            print("Block mask")
             diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=block_size, device=device)
         elif sparsityType == 'permkm':
+            print("Permuted NM mask")
             diag_mask = get_mask_nm_torch((out_features, in_features), sparsity, n, m, device=device)
             diag_mask = permStruc(diag_mask, device=device)
         elif sparsityType == 'permBlock':
+            print("Permuted Block mask")
             diag_mask = get_mask_block_torch((out_features, in_features), sparsity, block_size=block_size, device=device)
             diag_mask = permStruc(diag_mask, device=device)
         else:

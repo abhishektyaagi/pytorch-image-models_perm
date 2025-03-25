@@ -190,29 +190,48 @@ def get_mask_one_block_torch(mask_shape, start_row, start_col, block_size, devic
 
     return mask
 
-def get_mask_nm_torch(mask_shape, sparsity, n, m, device='cuda'):
+import torch
+
+def get_mask_nm_torch(mask_shape, n, m, device='cuda'):
     """
-    Computes a mask for a matrix where for each row, out of m values, n values are randomly chosen to be non-zero.
-    Handles edge cases where m is larger than the number of columns.
-    If n >= m, all values are set to zero for that row.
+    For each row, break it into segments of length m. In each segment,
+    choose n random elements to be True. If the last segment is shorter
+    than m, then pick a proportionally smaller number of elements to be True.
+
+    Args:
+        mask_shape (tuple): (num_rows, num_cols).
+        n (int): Number of non-zero (True) elements per segment of length m.
+                 For the final shorter segment, a proportional number is used.
+        m (int): Length of the segment to consider per chunk in a row.
+        device (str): Device to place the generated mask on (default 'cuda').
+
+    Returns:
+        torch.Tensor: A boolean mask of shape (num_rows, num_cols).
     """
     num_rows, num_cols = mask_shape
     final_mask = torch.zeros(mask_shape, dtype=torch.bool, device=device)
 
     for row in range(num_rows):
-        # Adjust m if it's larger than the number of columns
-        effective_m = min(m, num_cols)
+        col_start = 0
+        while col_start < num_cols:
+            # Determine the chunk size for this segment
+            segment_size = min(m, num_cols - col_start)
 
-        if n >= effective_m:
-            # If n >= m, set all values to zero for that row
-            continue
-        else:
-            # Randomly choose n indices out of effective_m
-            indices = torch.randperm(effective_m, device=device)[:n]
-            # Set the chosen indices in the current row to True
-            final_mask[row, indices] = True
+            # Calculate how many indices to pick in this segment
+            # e.g., proportionally scale n for smaller segments
+            # and clamp so it never exceeds segment_size
+            sub_n = int(round(segment_size * n / m))
+            sub_n = min(sub_n, segment_size)
+
+            if sub_n > 0:
+                # Pick sub_n random indices from this segment
+                indices = torch.randperm(segment_size, device=device)[:sub_n]
+                final_mask[row, col_start + indices] = True
+
+            col_start += segment_size
 
     return final_mask
+
 
 def get_mask_block_torch(mask_shape, sparsity, block_size, device='cuda'):
     """
