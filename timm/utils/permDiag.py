@@ -192,7 +192,7 @@ def get_mask_one_block_torch(mask_shape, start_row, start_col, block_size, devic
 
 import torch
 
-def get_mask_nm_torch(mask_shape, n, m, device='cuda'):
+def get_mask_nm_torch(mask_shape, sparsity='random', n=2, m=4, device='cuda'):
     """
     For each row, break it into segments of length m. In each segment,
     choose n random elements to be True. If the last segment is shorter
@@ -208,6 +208,7 @@ def get_mask_nm_torch(mask_shape, n, m, device='cuda'):
     Returns:
         torch.Tensor: A boolean mask of shape (num_rows, num_cols).
     """
+    print("Inside get_mask_nm_torch, with n: ", n, " m: ", m)
     num_rows, num_cols = mask_shape
     final_mask = torch.zeros(mask_shape, dtype=torch.bool, device=device)
 
