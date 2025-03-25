@@ -3,9 +3,9 @@
 import os
 import sys
 import argparse
-#import torch
-#import torch.nn as nn
-#import torch.nn.functional as F
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import pdb
 from vizMat import visualize_linear_sparsity
 from sparsity import get_layerwise_sparsity
@@ -24,13 +24,13 @@ analysis_dir = os.path.join(os.path.dirname(args.model), 'analysis')
 os.makedirs(analysis_dir, exist_ok=True)
 
 #Visualize the sparsity pattern of the model
-#checkpoint = torch.load(args.model, map_location='cpu')
-#model = checkpoint['state_dict']
-#visualize_linear_sparsity(model, analysis_dir)
+checkpoint = torch.load(args.model, map_location='cpu')
+model = checkpoint['state_dict']
+visualize_linear_sparsity(model, analysis_dir)
 
 #Get the sparsity level of each layer in the model and save that to a file with columns: name, dimensions, sparsity
-#output_file = os.path.join(analysis_dir, 'sparsity.csv')
-#get_layerwise_sparsity(model, output_file)
+output_file = os.path.join(analysis_dir, 'sparsity.csv')
+get_layerwise_sparsity(model, output_file)
 
 #get the ood performance
 """ from argparse import Namespace
@@ -58,8 +58,9 @@ print(f"Loss: {metrics['loss']:.4f}")
 print(f"Top-1 Accuracy: {metrics['top1']:.2f}%")
 print(f"Top-5 Accuracy: {metrics['top5']:.2f}%")
  """
+
 #Do McNemar's Test
-from argparse import Namespace
+""" from argparse import Namespace
 args = Namespace(
         val_split='validation',
         dataset='imagenet',
@@ -81,4 +82,4 @@ args = Namespace(
         block_size=2,
         round_permutations=False,
 )
-evaluatepval(args)
+evaluatepval(args) """

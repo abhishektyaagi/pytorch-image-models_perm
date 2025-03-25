@@ -89,13 +89,13 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         
         if mlp_layer == Mlp:
-            print("In basic MLP block")
+            print("In basic MLP block in Attention")
             self.proj = nn.Linear(dim, dim, bias=proj_bias)
         elif mlp_layer == MaskedMLP:
-            print("In MaksedMLP")
+            print("In MaksedMLP in Attention")
             self.proj = MaskedLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity,n=n,m=m,block_size=block_size)
         else:
-            print("In AutoShuffleMLP")
+            print("In AutoShuffleMLP in Attention")
             self.proj = AutoShuffleLinear(dim, dim, bias=proj_bias, sparsityType=sparsityType, sparsity=sparsity)
         
         self.proj_drop = nn.Dropout(proj_drop)

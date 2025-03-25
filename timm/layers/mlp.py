@@ -81,6 +81,7 @@ class MaskedLinear(nn.Module):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
+        print("In mask linear, sparsity type: ",sparsityType, " sparsity: ",sparsity)
         # Build your diagonal mask
         #diag_mask = get_mask_diagonal_torch((out_features, in_features), sparsity, device=device)
         #diag_mask = permDiag(diag_mask, device=device)
@@ -147,9 +148,9 @@ class MaskedMLP(nn.Module):
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
 
-        self.fc1 = MaskedLinear(in_features, hidden_features, bias=True, sparsity=sparsity, n=n, m=m, block_size=block_size, device=device)
+        self.fc1 = MaskedLinear(in_features, hidden_features, bias=True, sparsityType = sparsityType, sparsity=sparsity, n=n, m=m, block_size=block_size, device=device)
         self.act = act_layer()
-        self.fc2 = MaskedLinear(hidden_features, out_features, bias=True, sparsity=sparsity, n=n, m=m, block_size=block_size, device=device)
+        self.fc2 = MaskedLinear(hidden_features, out_features, bias=True, sparsityType = sparsityType, sparsity=sparsity, n=n, m=m, block_size=block_size, device=device)
         self.drop = nn.Dropout(drop)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
